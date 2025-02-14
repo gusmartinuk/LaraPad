@@ -21,3 +21,5 @@ RUN a2enmod rewrite
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
