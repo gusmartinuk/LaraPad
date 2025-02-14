@@ -4,7 +4,17 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UploadController;
+use App\Http\Controllers\NoteController;
+
 Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::post('/upload-image', [UploadController::class, 'uploadImage'])->middleware('auth');
+
+
+Route::middleware('auth')->group(function () {
+    Route::resource('notes', NoteController::class)->except(['create', 'edit']);
+});
 
 
 
