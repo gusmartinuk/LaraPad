@@ -27,6 +27,7 @@ class Note extends Model
         return $this->belongsToMany(Tag::class, 'note_tag');
     }
 
+
     public function documents()
     {
         return $this->hasMany(Document::class);

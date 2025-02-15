@@ -26,30 +26,38 @@ class NoteController extends Controller
             'content' => 'required|string',
         ]);
 
-        $contentWithSavedImages = ContentHelper::handleImages($request->content);
-
-        Note::create([
+        $note = Note::create([
             'title' => $request->title,
-            'content' => $contentWithSavedImages,
+            'content' => $request->content,
             'user_id' => auth()->id(),
-            'is_pinned' => $request->has('is_pinned')
+            'is_pinned' => $request->has('is_pinned'),
         ]);
 
-        return redirect()->route('notes.index')->with('success', 'Note added!');
+        // Attach tags
+        $tags = explode(',', $request->tags);
+        foreach ($tags as $tagName) {
+            $tag = Tag::firstOrCreate(['name' => trim($tagName)]);
+            $note->tags()->attach($tag->id);
+        }
+
+        return redirect()->route('notes.index')->with('success', 'Note added with tags!');
     }
+
 
     public function update(Request $request, Note $note)
     {
+        // Check user authorization
         if ($note->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
 
+        // Validate request data
         $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
         ]);
 
-        // Process old content and delete images
+        // Remove old images from storage
         $oldContent = $note->content;
         $pattern = '/<img[^>]+src="\/storage\/([^"]+)"[^>]*>/i';
         if (preg_match_all($pattern, $oldContent, $oldImages)) {
@@ -58,8 +66,8 @@ class NoteController extends Controller
             }
         }
 
-        // New content with saved images
-        $contentWithSavedImages = ContentHelper::handleImages($request->content);
+        // Process new content and save images
+        $contentWithSavedImages = \App\Helpers\ContentHelper::handleImages($request->content);
 
         // Update note
         $note->update([
@@ -68,8 +76,19 @@ class NoteController extends Controller
             'is_pinned' => $request->has('is_pinned'),
         ]);
 
-        return redirect()->route('notes.index')->with('success', 'Note updated successfully!');
+        // Update tags
+        $note->tags()->detach();
+        $tags = explode(',', $request->tags);
+        foreach ($tags as $tagName) {
+            $tag = \App\Models\Tag::firstOrCreate(['name' => trim($tagName)]);
+            $note->tags()->attach($tag->id);
+        }
+
+        return redirect()->route('notes.index')->with('success', 'Note updated successfully with tags and cleaned images!');
     }
+
+
+
 
     public function destroy(Note $note)
     {
@@ -90,6 +109,12 @@ class NoteController extends Controller
         $note->delete();
 
         return redirect()->route('notes.index')->with('success', 'Note deleted successfully!');
+    }
+
+    public function filterByTag(Tag $tag)
+    {
+        $notes = $tag->notes()->paginate(6);
+        return view('notes.index', compact('notes'));
     }
 
 

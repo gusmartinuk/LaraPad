@@ -16,23 +16,32 @@
                 class="bg-green-600 text-white px-4 py-2 mb-6 rounded shadow hover:bg-green-700">
             ➕ Add New Note
         </button>
+        <div class="mb-4">
+            <h3 class="text-lg font-bold mb-2">Tags</h3>
+            @foreach(App\Models\Tag::all() as $tag)
+                <a href="{{ route('notes.tag', $tag->id) }}" class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded mr-2 mb-2">
+                    #{{ $tag->name }}
+                </a>
+            @endforeach
+        </div>
+
 
         <!-- Notes Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         @forelse($notes as $note)
             <div class="bg-white shadow rounded-lg p-4 border-l-4 border-blue-400 hover:scale-105 transition relative">
-                <!-- Başlık -->
+                <!-- title -->
                 <h3 class="font-semibold text-lg mb-3">{{ $note->title }}</h3>
 
-                <!-- İçerik Özeti -->
+                <!-- content summary -->
                 <p class="text-sm text-gray-700 mb-4">
                     {{ Str::limit(strip_tags($note->content), 150) }}
                 </p>
 
-                <!-- İşlem Butonları -->
+                <!-- buttons -->
                 <div class="flex justify-between items-center border-t pt-2 text-sm">
                     <!-- Edit Button -->
-                    <button onclick="openNoteModal({{ $note->id }}, '{{ $note->title }}', `{!! $note->content !!}`, {{ $note->is_pinned }})"
+                    <button onclick="openNoteModal({{ $note->id }}, '{{ base64_encode($note->title) }}', '{{ base64_encode($note->content) }}', {{ $note->is_pinned }})"
                             class="text-blue-600 hover:text-blue-800 flex items-center">
                         ✏️ <span class="ml-1">Edit</span>
                     </button>
@@ -86,7 +95,13 @@
                     <span class="ml-2">📌 Pin this note</span>
                 </label>
             </div>
-
+            <!-- Tag Selection -->
+            <div class="mb-4">
+                <label class="block font-medium">Tags:</label>
+                <input type="text" id="tagInput" class="w-full border-gray-300 p-2 rounded" placeholder="Add tags (comma separated)">
+                <div id="tagSuggestions" class="mt-2 bg-white border rounded shadow hidden"></div>
+                <input type="hidden" name="tags" id="tags" />
+            </div>
             <!-- Submit Button -->
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="closeNoteModal()" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
@@ -123,7 +138,11 @@
         contentField.value = quill.root.innerHTML;
     });
 
-    function openNoteModal(id = null, title = '', content = '', isPinned = false) {
+
+
+
+    function openNoteModal(id = null, base64Title = '', base64Content = '', isPinned = false)
+    {
         const modal = document.getElementById('noteModal');
         const form = document.getElementById('noteForm');
         const titleInput = document.getElementById('modalTitleInput');
@@ -131,12 +150,30 @@
         const modalTitle = document.getElementById('modalTitle');
         const methodInput = document.getElementById('formMethod');
 
-        // Reset form and editor
-        titleInput.value = title;
-        quill.root.innerHTML = content;
+        // Base64 çözme işlemi
+        let decodedTitle = '';
+        let decodedContent = '';
+
+        try {
+            decodedTitle = atob(base64Title);
+        } catch (error) {
+            console.warn('Base64 decoding failed for title:', error);
+            decodedTitle = '';
+        }
+
+        try {
+            decodedContent = atob(base64Content);
+        } catch (error) {
+            console.warn('Base64 decoding failed for content:', error);
+            decodedContent = '';
+        }
+
+        // Formu güncelle
+        titleInput.value = decodedTitle;
+        quill.root.innerHTML = decodedContent;
         isPinnedCheckbox.checked = isPinned;
 
-        // Set form action and method based on context
+        // Form ayarları
         if (id) {
             form.action = `/notes/${id}`;
             methodInput.value = 'PUT';
@@ -161,6 +198,44 @@
             document.getElementById(`deleteForm-${noteId}`).submit();
         }
     }
+</script>
+
+
+<script>
+// Tag management
+let selectedTags = [];
+
+document.getElementById('tagInput').addEventListener('input', function () {
+    const query = this.value;
+    if (query.length > 2) {
+        fetch(`/tags/search?query=${query}`)
+            .then(res => res.json())
+            .then(data => {
+                const suggestions = document.getElementById('tagSuggestions');
+                suggestions.innerHTML = '';
+                suggestions.classList.remove('hidden');
+                data.forEach(tag => {
+                    const div = document.createElement('div');
+                    div.textContent = tag.name;
+                    div.className = 'p-2 cursor-pointer hover:bg-gray-200';
+                    div.addEventListener('click', () => {
+                        if (!selectedTags.includes(tag.name)) {
+                            selectedTags.push(tag.name);
+                            updateTagInput();
+                        }
+                        suggestions.classList.add('hidden');
+                    });
+                    suggestions.appendChild(div);
+                });
+            })
+            .catch(err => console.error('Tag fetch error:', err));
+    }
+});
+
+function updateTagInput() {
+    document.getElementById('tags').value = selectedTags.join(',');
+    document.getElementById('tagInput').value = selectedTags.join(', ');
+}
 </script>
 
 

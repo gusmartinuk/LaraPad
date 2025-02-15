@@ -20,3 +20,20 @@ button.text-red-500:hover {
     bottom: 10px;
     width: 100%;
 }
+
+
+/* Tag bubbles appearance */
+.tag-bubble {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 3px;
+    background-color: #e0f7fa;
+    color: #00796b;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tag-bubble:hover {
+    background-color: #b2dfdb;
+}

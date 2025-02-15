@@ -18,4 +18,3 @@ class Tag extends Model
         return $this->belongsToMany(Note::class, 'note_tag');
     }
 }
-
