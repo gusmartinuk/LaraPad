@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql
 
+COPY . /var/www/html
+
 # Enable Apache modules
 RUN a2enmod rewrite
 
@@ -25,7 +27,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Fix Apache config to use public folder
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-enabled/000-default.conf
+# RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-enabled/000-default.conf
 
 # Set ServerName to suppress warning
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
